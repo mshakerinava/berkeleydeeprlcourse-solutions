@@ -20,7 +20,7 @@ Predicting `state 17` seems to be hard.
 
 ### Problem 3a
 
-**MBRL with on-policy data collection on HalfCheetah"
+**MBRL with on-policy data collection on HalfCheetah**
 
 ![HalfCheetah q3a](plots/HalfCheetah_q3_default.jpg)
 
