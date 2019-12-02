@@ -39,7 +39,10 @@ class ModelBasedRL(object):
         self._policy = ModelBasedPolicy(env,
                                         self._random_dataset,
                                         horizon=mpc_horizon,
-                                        num_random_action_selection=num_random_action_selection)
+                                        num_random_action_selection=num_random_action_selection,
+# [Mehran Shakerinava] change begin
+                                        nn_layers=nn_layers)
+# [Mehran Shakerinava] change end
 
         timeit.reset()
         timeit.start('total')
@@ -84,8 +87,12 @@ class ModelBasedRL(object):
 
         losses = []
         ### PROBLEM 1
-        ### YOUR CODE HERE
-        raise NotImplementedError
+        ### YOUR CODE HERE ###
+        for epoch_idx in range(self._training_epochs):
+            for batch in dataset.random_iterator(batch_size=self._training_batch_size):
+                loss = self._policy.train_step(states=batch[0], actions=batch[1], next_states=batch[2])
+                losses.append(loss)
+        ######################
 
         logger.record_tabular('TrainingLossStart', losses[0])
         logger.record_tabular('TrainingLossFinal', losses[-1])
@@ -116,16 +123,22 @@ class ModelBasedRL(object):
         """
         logger.info('Training policy....')
         ### PROBLEM 1
-        ### YOUR CODE HERE
-        raise NotImplementedError
+        ### YOUR CODE HERE ###
+        self._train_policy(self._random_dataset)
+        ######################
 
         logger.info('Evaluating predictions...')
         for r_num, (states, actions, _, _, _) in enumerate(self._random_dataset.rollout_iterator()):
             pred_states = []
 
             ### PROBLEM 1
-            ### YOUR CODE HERE
-            raise NotImplementedError
+            ### YOUR CODE HERE ###
+            cur_state = states[0]
+            for i in range(actions.shape[0]):
+                next_state_pred = self._policy.predict(state=cur_state, action=actions[i])
+                pred_states.append(next_state_pred)
+                cur_state = next_state_pred
+            ######################
 
             states = np.asarray(states)
             pred_states = np.asarray(pred_states)
@@ -154,13 +167,15 @@ class ModelBasedRL(object):
 
         logger.info('Training policy....')
         ### PROBLEM 2
-        ### YOUR CODE HERE
-        raise NotImplementedError
+        ### YOUR CODE HERE ###
+        self._train_policy(self._random_dataset)
+        ######################
 
         logger.info('Evaluating policy...')
         ### PROBLEM 2
-        ### YOUR CODE HERE
-        raise NotImplementedError
+        ### YOUR CODE HERE ###
+        eval_dataset = self._gather_rollouts(policy=self._policy, num_rollouts=10)
+        ######################
 
         logger.info('Trained policy')
         self._log(eval_dataset)
@@ -181,19 +196,22 @@ class ModelBasedRL(object):
             logger.info('Iteration {0}'.format(itr))
             logger.record_tabular('Itr', itr)
 
-            ### PROBLEM 3
-            ### YOUR CODE HERE
             logger.info('Training policy...')
-            raise NotImplementedError
-
             ### PROBLEM 3
-            ### YOUR CODE HERE
+            ### YOUR CODE HERE ###
+            self._train_policy(dataset)
+            ######################
+
             logger.info('Gathering rollouts...')
-            raise NotImplementedError
-
             ### PROBLEM 3
-            ### YOUR CODE HERE
+            ### YOUR CODE HERE ###
+            new_dataset = self._gather_rollouts(policy=self._policy, num_rollouts=self._num_onpolicy_rollouts)
+            ######################
+
             logger.info('Appending dataset...')
-            raise NotImplementedError
+            ### PROBLEM 3
+            ### YOUR CODE HERE ###
+            dataset.append(new_dataset)
+            ######################
 
             self._log(new_dataset)
