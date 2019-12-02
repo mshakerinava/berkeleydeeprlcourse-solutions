@@ -1,3 +1,7 @@
+# [Mehran Shakerinava] change begin
+import time
+import json
+# [Mehran Shakerinava] change end
 import argparse
 import gym
 from gym import wrappers
@@ -18,9 +22,14 @@ def atari_model(img_in, num_actions, scope, reuse=False):
         out = img_in
         with tf.variable_scope("convnet"):
             # original architecture
-            out = layers.convolution2d(out, num_outputs=32, kernel_size=8, stride=4, activation_fn=tf.nn.relu)
-            out = layers.convolution2d(out, num_outputs=64, kernel_size=4, stride=2, activation_fn=tf.nn.relu)
-            out = layers.convolution2d(out, num_outputs=64, kernel_size=3, stride=1, activation_fn=tf.nn.relu)
+            # [Mehran Shakerinava] change begin
+            out = layers.convolution2d(out, num_outputs=32, kernel_size=8, stride=4, padding='SAME',
+                activation_fn=tf.nn.relu, weights_initializer=tf.orthogonal_initializer())
+            out = layers.convolution2d(out, num_outputs=64, kernel_size=4, stride=2, padding='SAME',
+                activation_fn=tf.nn.relu, weights_initializer=tf.orthogonal_initializer())
+            out = layers.convolution2d(out, num_outputs=64, kernel_size=3, stride=1, padding='SAME',
+                activation_fn=tf.nn.relu, weights_initializer=tf.orthogonal_initializer())
+            # [Mehran Shakerinava] change end
         out = layers.flatten(out)
         with tf.variable_scope("action_value"):
             out = layers.fully_connected(out, num_outputs=512,         activation_fn=tf.nn.relu)
@@ -28,9 +37,9 @@ def atari_model(img_in, num_actions, scope, reuse=False):
 
         return out
 
-def atari_learn(env,
-                session,
-                num_timesteps):
+# [Mehran Shakerinava] change begin
+def atari_learn(env, session, discount, num_timesteps, batch_size, double, target_update_freq, **kwargs):
+# [Mehran Shakerinava] change end
     # This is just a rough estimate
     num_iterations = float(num_timesteps) / 4.0
 
@@ -68,14 +77,16 @@ def atari_learn(env,
         exploration=exploration_schedule,
         stopping_criterion=stopping_criterion,
         replay_buffer_size=1000000,
-        batch_size=32,
-        gamma=0.99,
         learning_starts=50000,
         learning_freq=4,
         frame_history_len=4,
-        target_update_freq=10000,
         grad_norm_clipping=10,
-        double_q=True
+# [Mehran Shakerinava] change begin
+        target_update_freq=target_update_freq,
+        batch_size=batch_size,
+        gamma=discount,
+        double_q=double
+# [Mehran Shakerinava] change end
     )
     env.close()
 
@@ -84,47 +95,54 @@ def get_available_gpus():
     local_device_protos = device_lib.list_local_devices()
     return [x.physical_device_desc for x in local_device_protos if x.device_type == 'GPU']
 
-def set_global_seeds(i):
-    try:
-        import tensorflow as tf
-    except ImportError:
-        pass
-    else:
-        tf.set_random_seed(i)
-    np.random.seed(i)
-    random.seed(i)
+# [Mehran Shakerinava] change begin
+def set_global_seeds(seed):
+    random.seed(seed)
+    tf.set_random_seed(random.randint(0, 2 ** 31 - 1))
+    np.random.seed(random.randint(0, 2 ** 31 - 1))
+# [Mehran Shakerinava] change end
 
 def get_session():
     tf.reset_default_graph()
-    tf_config = tf.ConfigProto(
-        inter_op_parallelism_threads=1,
-        intra_op_parallelism_threads=1)
+# [Mehran Shakerinava] change begin
+    tf_config = tf.ConfigProto()
+    tf_config.gpu_options.allow_growth = True
+# [Mehran Shakerinava] change end
     session = tf.Session(config=tf_config)
     print("AVAILABLE GPUS: ", get_available_gpus())
     return session
 
-def get_env(task, seed):
-    env = gym.make('PongNoFrameskip-v4')
+# [Mehran Shakerinava] change begin
+def get_env(env_name, seed):
+    env = gym.make(env_name)
 
     set_global_seeds(seed)
-    env.seed(seed)
+    env.seed(random.randint(0, 2 ** 31 - 1))
 
-    expt_dir = '/tmp/hw3_vid_dir2/'
-    env = wrappers.Monitor(env, osp.join(expt_dir, "gym"), force=True)
+    expt_dir = './vid_dir/' + time.strftime("%d-%m-%Y_%H-%M-%S") + '_' + env_name
+    env = wrappers.Monitor(env, expt_dir)
     env = wrap_deepmind(env)
 
     return env
 
 def main():
-    # Get Atari games.
-    task = gym.make('PongNoFrameskip-v4')
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--env-id', type=str, default='PongNoFrameskip-v4')
+    parser.add_argument('--seed', type=int, default=1)
+    parser.add_argument('--batch-size', type=int, default=32)
+    parser.add_argument('--num-timesteps', type=int, default=2e7)
+    parser.add_argument('--target-update-freq', type=int, default=1e4)
+    parser.add_argument('--discount', type=float, default=0.99)
+    parser.add_argument('--double', action='store_true')
+    ARGS = parser.parse_args()
+    ARGS_JSON = json.dumps(vars(ARGS), sort_keys=True, indent=4)
+    print('ARGS = %s' % ARGS_JSON)
 
     # Run training
-    seed = random.randint(0, 9999)
-    print('random seed = %d' % seed)
-    env = get_env(task, seed)
+    env = get_env(ARGS.env_id, ARGS.seed)
     session = get_session()
-    atari_learn(env, session, num_timesteps=2e8)
+    atari_learn(env, session, **vars(ARGS))
+# [Mehran Shakerinava] change end
 
 if __name__ == "__main__":
     main()

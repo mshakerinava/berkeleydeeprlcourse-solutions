@@ -94,6 +94,9 @@ def get_session():
     tf_config = tf.ConfigProto(
         inter_op_parallelism_threads=1,
         intra_op_parallelism_threads=1)
+# [Mehran Shakerinava] change begin
+    tf_config.gpu_options.allow_growth = True
+# [Mehran Shakerinava] change end
     session = tf.Session(config=tf_config)
     print("AVAILABLE GPUS: ", get_available_gpus())
     return session
@@ -104,8 +107,10 @@ def get_env(seed):
     set_global_seeds(seed)
     env.seed(seed)
 
-    expt_dir = '/tmp/hw3_vid_dir/'
-    env = wrappers.Monitor(env, osp.join(expt_dir, "gym"), force=True)
+# [Mehran Shakerinava] change begin    
+    expt_dir = './vid_dir/' + time.strftime("%d-%m-%Y_%H-%M-%S") + '_Pong-ram-v0/'
+    env = wrappers.Monitor(env, expt_dir)
+# [Mehran Shakerinava] change end
     env = wrap_deepmind_ram(env)
 
     return env
