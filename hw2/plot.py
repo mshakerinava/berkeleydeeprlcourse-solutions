@@ -52,10 +52,14 @@ def plot_data(data, value="AverageReturn"):
     if isinstance(data, list):
         data = pd.concat(data, ignore_index=True)
 
-    sns.set(style="darkgrid", font_scale=1.5)
+# [Mehran Shakerinava] change begin
+    fig = plt.figure(figsize=(4, 4))
+    sns.set(style="darkgrid", font_scale=1)
     sns.tsplot(data=data, time="Iteration", value=value, unit="Unit", condition="Condition")
-    plt.legend(loc='best').draggable()
-    plt.show()
+    plt.legend(loc='best', fontsize='xx-small')
+    fig.savefig("plot.svg", bbox_inches='tight')
+    plt.close()
+# [Mehran Shakerinava] change end
 
 
 def get_datasets(fpath, condition=None):
