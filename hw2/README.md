@@ -1,12 +1,11 @@
 ## HW2: Policy Gradients
 
-**Problem 1: State-dependent baseline**
+### Problem 1: State-dependent baseline
 
 Solution can be found [here](prob1/prob1.pdf).
 
-
-
-**Problem 4: CartPole**
+  
+### Problem 4: CartPole
 
 | **Key** | **Meaning**                  |
 | ------- | ---------------------------- |
@@ -22,17 +21,15 @@ Solution can be found [here](prob1/prob1.pdf).
 * A larger batch-size causes more stable and robust learning (smoother learning curves).  
 * There's no clear theoretical justification for advantage centering (at least, not for the way it's been implemented in this assignment), and empirically, it doesn't seem to be useful either.
 
-
-
-**Problem 5: InvertedPendulum**
+  
+### Problem 5: InvertedPendulum
 
 Hyperparameter search over *batch-size* and *learning-rate*:
 
 ![p5](plots/p5.svg)
 
-
-
-**Problem 7: LunarLander**
+  
+### Problem 7: LunarLander
 
 ``` bash
 python3 train_pg_f18.py LunarLanderContinuous-v2 -ep 1000 --discount 0.99 -n 100 -e 3 -l 2 -s 64 -b 40000 -lr 0.005 -rtg --nn_baseline --exp_name ll_b40000_r0.005
@@ -40,9 +37,8 @@ python3 train_pg_f18.py LunarLanderContinuous-v2 -ep 1000 --discount 0.99 -n 100
 
 ![p7](plots/p7.svg)
 
-
-
-**Problem 8: HalfCheetah**
+  
+### Problem 8: HalfCheetah
 
 **Left:** Hyperparameter search over *batch-size* and *learning-rate*. Discount is set to `0.9`.  
 **Right:** Comparison of different implementations of Policy Gradients on best hyperparameters obtained from hyperparameter search. Discount is set to `0.95`.
