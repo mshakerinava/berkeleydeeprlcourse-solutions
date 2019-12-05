@@ -194,7 +194,7 @@ class Agent(object):
         """
         if self.discrete:
             sy_logits_na = policy_parameters
-            sy_logprob_n = tf.distributions.Categorical(logits=sy_logits_na).log_prob(sy_ac_na)
+            sy_logprob_n = tfp.distributions.Categorical(logits=sy_logits_na).log_prob(sy_ac_na)
         else:
             sy_mean, sy_logstd = policy_parameters
             sy_logprob_n = tfp.distributions.MultivariateNormalDiag(
@@ -414,9 +414,16 @@ def train_AC(
     ########################################################################
 
     # Set random seeds
-    tf.set_random_seed(seed)
-    np.random.seed(seed)
-    env.seed(seed)
+    # [Mehran Shakeriava] change begin
+    import random
+    random.seed(seed, version=2)
+    # tf.set_random_seed(seed)
+    # np.random.seed(seed)
+    # env.seed(seed)
+    tf.set_random_seed(random.randint(0, 2**32 - 1))
+    np.random.seed(random.randint(0, 2**32 - 1))
+    env.seed(random.randint(0, 2**32 - 1))
+    # [Mehran Shakeriava] change end
 
     # Maximum length for episodes
     max_path_length = max_path_length or env.spec.max_episode_steps
@@ -536,18 +543,20 @@ def train_AC(
             if dm == 'ex2':
                 ### PROBLEM 3
                 ### YOUR CODE HERE
-                raise NotImplementedError
+                ll, kl, elbo = exploration.fit_density_model(next_ob_no)
             elif dm == 'hist' or dm == 'rbf':
                 ### PROBLEM 1
-                ### YOUR CODE HERE
-                raise NotImplementedError
+                ### YOUR CODE HERE ###
+                exploration.fit_density_model(next_ob_no)
+                ######################
             else:
                 assert False
 
             # 2. Modify the reward
             ### PROBLEM 1
-            ### YOUR CODE HERE
-            raise NotImplementedError
+            ### YOUR CODE HERE ###
+            re_n = exploration.modify_reward(re_n, next_ob_no)
+            ######################
 
             print('average state', np.mean(ob_no, axis=0))
             print('average action', np.mean(ac_na, axis=0))
@@ -642,39 +651,36 @@ def main():
         seed = args.seed + 10*e
         print('Running experiment with seed %d'%seed)
 
-        def train_func():
-            train_AC(
-                exp_name=args.exp_name,
-                env_name=args.env_name,
-                n_iter=args.n_iter,
-                gamma=args.discount,
-                min_timesteps_per_batch=args.batch_size,
-                max_path_length=max_path_length,
-                learning_rate=args.learning_rate,
-                num_target_updates=args.num_target_updates,
-                num_grad_steps_per_target_update=args.num_grad_steps_per_target_update,
-                animate=args.render,
-                logdir=os.path.join(logdir,'%d'%seed),
-                normalize_advantages=not(args.dont_normalize_advantages),
-                seed=seed,
-                n_layers=args.n_layers,
-                size=args.size,
-                ########################################################################
-                bonus_coeff=args.bonus_coeff,
-                kl_weight=args.kl_weight,
-                density_lr=args.density_lr,
-                density_train_iters=args.density_train_iters,
-                density_batch_size=args.density_batch_size,
-                density_hiddim=args.density_hiddim,
-                dm=args.density_model,
-                replay_size=args.replay_size,
-                sigma=args.sigma
-                ########################################################################
-                )
-
         # # Awkward hacky process runs, because Tensorflow does not like
         # # repeatedly calling train_AC in the same thread.
-        p = Process(target=train_func, args=tuple())
+        p = Process(target=train_AC, kwargs={
+            'exp_name': args.exp_name,
+            'env_name': args.env_name,
+            'n_iter': args.n_iter,
+            'gamma': args.discount,
+            'min_timesteps_per_batch': args.batch_size,
+            'max_path_length': max_path_length,
+            'learning_rate': args.learning_rate,
+            'num_target_updates': args.num_target_updates,
+            'num_grad_steps_per_target_update': args.num_grad_steps_per_target_update,
+            'animate': args.render,
+            'logdir': os.path.join(logdir,'%d'%seed),
+            'normalize_advantages': not(args.dont_normalize_advantages),
+            'seed': seed,
+            'n_layers': args.n_layers,
+            'size': args.size,
+            ########################################################################
+            'bonus_coeff': args.bonus_coeff,
+            'kl_weight': args.kl_weight,
+            'density_lr': args.density_lr,
+            'density_train_iters': args.density_train_iters,
+            'density_batch_size': args.density_batch_size,
+            'density_hiddim': args.density_hiddim,
+            'dm': args.density_model,
+            'replay_size': args.replay_size,
+            'sigma': args.sigma
+            ########################################################################
+        })
         p.start()
         processes.append(p)
         # if you comment in the line below, then the loop will block 
