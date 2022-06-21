@@ -1,4 +1,4 @@
-numpy==1.14.5
+numpy==1.22.0
 mujoco-py==1.50.1.56
 gym==0.10.5
 gym[atari]==0.10.5
